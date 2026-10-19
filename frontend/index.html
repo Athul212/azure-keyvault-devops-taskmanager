@@ -1,0 +1,157 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DevOps Task Manager</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      color: #fff;
+      background: linear-gradient(135deg, #0f172a, #312e81, #0f766e);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+    .container {
+      width: 100%;
+      max-width: 650px;
+      padding: 32px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 20px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    }
+    h1 { text-align: center; }
+    .subtitle { text-align: center; color: #cbd5e1; }
+    .form { display: flex; gap: 10px; margin: 28px 0; }
+    input {
+      flex: 1;
+      min-width: 0;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+    }
+    button {
+      padding: 12px 20px;
+      background: #22d3ee;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    ul { padding: 0; list-style: none; }
+    li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 10px;
+      overflow-wrap: anywhere;
+    }
+    .delete { background: #fb7185; }
+    #status { color: #fde68a; text-align: center; }
+    .footer {
+      margin-top: 25px;
+      color: #cbd5e1;
+      text-align: center;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 DevOps Task Manager</h1>
+    <p class="subtitle">Azure • Flask • PostgreSQL • Key Vault</p>
+
+    <form class="form" id="taskForm">
+      <input id="taskInput" placeholder="Enter a new task..." required maxlength="255">
+      <button type="submit">Add</button>
+    </form>
+
+    <p id="status" role="status"></p>
+    <ul id="taskList"></ul>
+
+    <div class="footer">
+      Powered by Microsoft Azure | Secure Secrets with Key Vault
+    </div>
+  </div>
+
+  <script>
+    const list = document.getElementById("taskList");
+    const status = document.getElementById("status");
+    const input = document.getElementById("taskInput");
+
+    async function loadTasks() {
+      try {
+        const response = await fetch("/api/tasks");
+        if (!response.ok) throw new Error("Unable to load tasks");
+
+        const tasks = await response.json();
+        list.replaceChildren();
+
+        for (const task of tasks) {
+          const li = document.createElement("li");
+          const title = document.createElement("span");
+          title.textContent = task.title;
+
+          const button = document.createElement("button");
+          button.className = "delete";
+          button.textContent = "Delete";
+          button.onclick = () => deleteTask(task.id);
+
+          li.append(title, button);
+          list.appendChild(li);
+        }
+        status.textContent = tasks.length ? "" : "No tasks yet. Add your first task!";
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    }
+
+    document.getElementById("taskForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const title = input.value.trim();
+      if (!title) return;
+
+      try {
+        const response = await fetch("/api/tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title })
+        });
+        if (!response.ok) throw new Error("Unable to add task");
+
+        input.value = "";
+        await loadTasks();
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    });
+
+    async function deleteTask(id) {
+      try {
+        const response = await fetch(`/api/tasks/${id}`, {
+          method: "DELETE"
+        });
+        if (!response.ok) throw new Error("Unable to delete task");
+        await loadTasks();
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    }
+
+    loadTasks();
+  </script>
+</body>
+</html>
+
